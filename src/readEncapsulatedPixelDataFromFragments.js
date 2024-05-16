@@ -80,23 +80,9 @@ export default function readEncapsulatedPixelDataFromFragments (dataSet, pixelDa
   // create byte stream on the data for this pixel data element
   const byteStream = new ByteStream(dataSet.byteArrayParser, dataSet.byteArray, pixelDataElement.dataOffset);
 
-  // seek past the basic offset table (no need to parse it again since we already have)
-  const basicOffsetTable = readSequenceItem(byteStream);
-
-  if (basicOffsetTable.tag !== 'xfffee000') {
-    throw 'dicomParser.readEncapsulatedPixelData: missing basic offset table xfffee000';
-  }
-
-  byteStream.seek(basicOffsetTable.length);
-
-  const fragmentZeroPosition = byteStream.position;
-
-  // tag + length
-  const fragmentHeaderSize = 8;
-
   // if there is only one fragment, return a view on this array to avoid copying
   if (numFragments === 1) {
-    return sharedCopy(byteStream.byteArray, fragmentZeroPosition + fragments[startFragmentIndex].offset + fragmentHeaderSize, fragments[startFragmentIndex].length);
+    return sharedCopy(byteStream.byteArray, fragments[startFragmentIndex].position, fragments[startFragmentIndex].length);
   }
 
   // more than one fragment, combine all of the fragments into one buffer
@@ -105,7 +91,7 @@ export default function readEncapsulatedPixelDataFromFragments (dataSet, pixelDa
   let pixelDataIndex = 0;
 
   for (let i = startFragmentIndex; i < startFragmentIndex + numFragments; i++) {
-    let fragmentOffset = fragmentZeroPosition + fragments[i].offset + fragmentHeaderSize;
+    let fragmentOffset = fragments[i].position;
 
     for (let j = 0; j < fragments[i].length; j++) {
       pixelData[pixelDataIndex++] = byteStream.byteArray[fragmentOffset++];
